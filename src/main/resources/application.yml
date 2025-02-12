@@ -1,0 +1,13 @@
+rabbitmq:
+  exchanges:
+    internal:internal.exchange
+  queues:
+    notification:notification.queue
+  routing-keys:
+    internal-notification:internal.notification.routing-key
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
