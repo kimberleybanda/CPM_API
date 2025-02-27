@@ -18,12 +18,23 @@ public class Users {
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO)
     public Long id;
+
+    public String name;
     @Column(name = "phone",unique = true)
     public String phone;
     public String password;
 
+    public String nationalIdUrl;
+    public String bankStatementUrl;
+    public String proofOfResidencyUrl;
+    public boolean approved;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_type_id")
     private UserTypes userType;
+
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "country_id")
+    private Countries countries;
 
 }

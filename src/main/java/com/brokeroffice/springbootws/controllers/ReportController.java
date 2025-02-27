@@ -4,14 +4,19 @@ package com.brokeroffice.springbootws.controllers;
         import com.brokeroffice.springbootws.helpers.ApiResponse;
         import com.brokeroffice.springbootws.helpers.AppConfigReader;
         import com.brokeroffice.springbootws.helpers.Dao;
+        import com.brokeroffice.springbootws.helpers.SmsSender;
+        import com.brokeroffice.springbootws.models.CustomPostId;
+        import com.brokeroffice.springbootws.models.CustomUsers;
         import com.brokeroffice.springbootws.models.PostId;
         import com.brokeroffice.springbootws.repo.*;
         import lombok.extern.slf4j.Slf4j;
 
+        import okhttp3.RequestBody;
         import org.apache.poi.xssf.usermodel.XSSFCell;
         import org.apache.poi.xssf.usermodel.XSSFRow;
         import org.apache.poi.xssf.usermodel.XSSFSheet;
         import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+        import org.json.JSONObject;
         import org.springframework.beans.factory.annotation.Autowired;
         import org.springframework.util.StringUtils;
         import org.springframework.web.bind.annotation.*;
@@ -27,7 +32,8 @@ package com.brokeroffice.springbootws.controllers;
         import java.util.*;
         import java.util.stream.Collectors;
         import java.util.stream.Stream;
-
+        import okhttp3.*;
+        import org.json.JSONObject;
 
 @Slf4j  // to have something printed on the console
 
@@ -52,6 +58,13 @@ public class ReportController implements ImplReports {
     @Autowired
     UsersTypeRepo usersTypeRepo;
 
+    @Autowired
+    CountriesRepo countriesRepo;
+
+    @Autowired
+    CityRepo citiesRepo;
+
+
 
     @Override
     public ApiResponse login(Users users) throws Exception {
@@ -63,13 +76,18 @@ public class ReportController implements ImplReports {
 
                 String password = users.getPassword();
 
-                if (password.equals(users1.getPassword())) {
+                if (password.equals(users1.getPassword()) && users1.isApproved()) {
                     Users newReturnUser= new Users();
                     newReturnUser.setId(users1.getId());
                     newReturnUser.setPhone(users1.getPhone());
                     newReturnUser.setUserType(users1.getUserType());
                     return ApiResponse.builder().code(200).message("User Found").data(newReturnUser).build();
-                } else {
+                }  else if (!users1.isApproved()) {
+                    Users newReturnUser= new Users();
+                    newReturnUser.setId(0L);
+                    newReturnUser.setPhone("");
+                    return ApiResponse.builder().code(200).message("User Pending Approval").data(newReturnUser).build();
+                }else {
                     Users newReturnUser= new Users();
                     newReturnUser.setId(0L);
                     newReturnUser.setPhone("");
@@ -82,11 +100,53 @@ public class ReportController implements ImplReports {
     }
 
     @Override
-    public ApiResponse register(Users users) throws Exception {
+    public ApiResponse register(
+            MultipartFile nationalIdFile,
+            MultipartFile bankStatementFile,
+             MultipartFile proofOfResidencyFile,
+            Users users) throws Exception {
+
+        String nationalIdFileName = StringUtils.cleanPath(nationalIdFile.getOriginalFilename());
+        String bankStatementFileName = StringUtils.cleanPath(bankStatementFile.getOriginalFilename());
+        String proofOfResidencyFileName = StringUtils.cleanPath(proofOfResidencyFile.getOriginalFilename());
+
+        if (!nationalIdFileName.endsWith(".png") ||!bankStatementFileName.endsWith(".png")  ||!proofOfResidencyFileName.endsWith(".png") ) {
+            return ApiResponse.builder().code(500).message("File Type Wrong").data(0).build();
+        }
+
+
+        String directoryPath ="C:\\inetpub\\wwwroot\\cpm\\RegistrationsUploads\\"+users.getPhone();
+         Path directory = Paths.get(directoryPath);
+        try{
+            Files.createDirectory(directory);
+        }catch (Exception ex){
+
+        }
+        Path path = Paths.get("C:\\inetpub\\wwwroot\\cpm\\RegistrationsUploads\\"+users.getPhone()+"\\" + nationalIdFileName);
+        Files.copy(nationalIdFile.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+
+        Path path2 = Paths.get("C:\\inetpub\\wwwroot\\cpm\\RegistrationsUploads\\"+users.getPhone()+"\\" + bankStatementFileName);
+        Files.copy(bankStatementFile.getInputStream(), path2, StandardCopyOption.REPLACE_EXISTING);
+
+        Path path3 = Paths.get("C:\\inetpub\\wwwroot\\cpm\\RegistrationsUploads\\"+users.getPhone()+"\\" + proofOfResidencyFileName);
+        Files.copy(proofOfResidencyFile.getInputStream(), path3, StandardCopyOption.REPLACE_EXISTING);
+
+
         Optional<Users> usersOptional = Optional.ofNullable(usersRepo.findByPhone(users.getPhone()));
         if (usersOptional.isPresent()) {
-            return ApiResponse.builder().status("403").code(403).message("User Already Exist").data(new Users(1L,"","",new UserTypes(1L,"")) ).build();
+
+            if(users.isApproved()){
+                users.setApproved(true);
+                usersRepo.save(users);
+                return ApiResponse.builder().status("200").code(200).message("Approval Success").data(users).build();
+            }else{
+                return ApiResponse.builder().status("403").code(403).message("User Already Exist").data(new Users(1L,"","","","","","",false,new UserTypes(1L,""),new Countries(1L,"")) ).build();
+            }
+
         } else {
+            users.setNationalIdUrl("cpm/RegistrationsUploads/"+nationalIdFileName);
+            users.setBankStatementUrl("cpm/RegistrationsUploads/"+bankStatementFileName);
+            users.setProofOfResidencyUrl("cpm/RegistrationsUploads/"+proofOfResidencyFileName);
             usersRepo.save(users);
             return ApiResponse.builder().status("200").code(200).message("User Created").data(users).build();
         }
@@ -416,6 +476,106 @@ public class ReportController implements ImplReports {
         return ApiResponse.builder().code(200).message("Bulk Message Success").data(1).build();
     }
 
+    @Override
+    public ApiResponse countries(Countries countries) throws Exception {
+
+        Optional<Countries> countriesOptional = countriesRepo.findById(countries.getId());
+        if (countriesOptional.isPresent()) {
+            Countries countries1 = countriesOptional.get();
+
+            countries1.setName(countries.getName());
+            countriesRepo.save(countries1);
+            return ApiResponse.builder().code(200).message("Countries Updated").data(countries1).build();
+        } else {
+            countriesRepo.save(countries);
+            return ApiResponse.builder().code(200).message("Countries Created").data(countries).build();
+        }
+
+    }
+
+    @Override
+    public ApiResponse cities(City cities) throws Exception {
+
+        Optional<City> citiesOptional = citiesRepo.findById(cities.getId());
+        if (citiesOptional.isPresent()) {
+            City cities1 = citiesOptional.get();
+
+            cities1.setName(cities.getName());
+            citiesRepo.save(cities1);
+            return ApiResponse.builder().code(200).message("Countries Updated").data(cities1).build();
+        } else {
+            citiesRepo.save(cities);
+            return ApiResponse.builder().code(200).message("Countries Created").data(cities).build();
+        }
+
+    }
+
+    @Override
+    public List<Countries> countries() throws Exception {
+        return countriesRepo.findAll();
+    }
+
+    @Override
+    public List<City> cities() throws Exception {
+        return citiesRepo.findAll();
+    }
+
+    @Override
+    public List<CustomUsers> approvedUsers() throws Exception {
+        List<CustomUsers>usersList= new ArrayList<>();
+        try{
+            String sql="select * from users where approved=0";
+
+            Statement st= Dao.connection().createStatement();
+            ResultSet rs = st.executeQuery(sql);
+            int rowCount = rs.getRow();
+            while(rs.next())
+            {
+                usersList.add(
+                        new CustomUsers(
+                                rs.getLong("id"),
+                                rs.getString("name"),
+                                rs.getString("phone"),
+                                rs.getString("nationalIdUrl"),
+                                rs.getBoolean("approved")
+                        ));
+
+
+            }
+        }catch (Exception ex){
+            System.out.println(ex.getMessage());
+        }
+        return usersList;
+    }
+
+    @Override
+    public ApiResponse activate_user(CustomPostId postId) throws Exception {
+
+        try {
+
+            String sql = "UPDATE users SET approved = 1 WHERE id = " + postId.getId();
+            System.out.println(sql);
+            Statement st = Dao.connection().createStatement();
+
+            int rowsAffected = st.executeUpdate(sql);
+            if (rowsAffected > 0) {
+                String message="You are now approved as Agent on Channel Partner Management";
+               SmsSender.smsSender(message,postId.getPhone());
+
+                st.close(); // Close the statement
+              return  ApiResponse.builder().code(200).message("User activated successfully.").data(1).build();
+            } else {
+                st.close(); // Close the statement
+                return  ApiResponse.builder().code(404).message("User Not activated.").data(1).build();
+            }
+
+
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+         return   ApiResponse.builder().code(500).message("Something Happened").data(1).build();
+        }
+
+    }
 
 
 }

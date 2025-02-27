@@ -27,6 +27,8 @@ import javax.ws.rs.core.MediaType;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 //@SpringBootApplication
@@ -146,7 +148,13 @@ System.out.println(counterDetails);
 
 
 
+	public static boolean validatePhoneNumber(String phoneNumber) {
+		// Define the pattern to match exactly "07" followed by 8 digits
 
+		Pattern pattern = Pattern.compile("^2637[0-9]{8}$");
+		Matcher matcher = pattern.matcher(phoneNumber);
+		return matcher.matches();
+	}
 
 	@Bean
 	public WebMvcConfigurer customConfigurer() {

@@ -3,9 +3,13 @@ package com.brokeroffice.springbootws.controllers;
 import com.brokeroffice.springbootws.entities.*;
 import com.brokeroffice.springbootws.helpers.ApiResponse;
 
+import com.brokeroffice.springbootws.models.CustomPostId;
+import com.brokeroffice.springbootws.models.CustomUsers;
 import com.brokeroffice.springbootws.models.PostId;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RequestMapping("/v1/api")
 public interface ImplReports {
@@ -14,7 +18,9 @@ public interface ImplReports {
     ApiResponse login(@RequestBody Users users)  throws Exception;
 
     @PostMapping(value = "register")
-    ApiResponse register(@RequestBody Users users)  throws Exception;
+    ApiResponse register(@RequestPart MultipartFile nationalIdFile,
+                         @RequestPart MultipartFile bankStatementFile,
+                         @RequestPart MultipartFile proofOfResidencyFile,@RequestPart Users users)  throws Exception;
 
     @GetMapping(value = "usertypes")
     ApiResponse usertypes()  throws Exception;
@@ -84,6 +90,25 @@ public interface ImplReports {
     @PostMapping(value = "SmsUpload")
     ApiResponse SmsUpload(@RequestParam("file") MultipartFile file,
                           String message)  throws Exception;
+
+
+    @PostMapping(value = "countries")
+    ApiResponse countries(@RequestBody Countries countries)  throws Exception;
+
+    @GetMapping(value = "countries")
+    List<Countries> countries()  throws Exception;
+
+    @PostMapping(value = "cities")
+    ApiResponse cities(@RequestBody City cities)  throws Exception;
+
+    @GetMapping(value = "cities")
+    List<City> cities()  throws Exception;
+
+    @GetMapping(value = "approvedUsers")
+    List<CustomUsers>  approvedUsers()  throws Exception;
+
+    @PostMapping(value = "activate_user")
+    ApiResponse activate_user(@RequestBody CustomPostId postId)  throws Exception;
 
 
 }
