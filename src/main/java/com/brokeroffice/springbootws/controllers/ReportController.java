@@ -8,6 +8,7 @@ package com.brokeroffice.springbootws.controllers;
         import com.brokeroffice.springbootws.models.CustomPostId;
         import com.brokeroffice.springbootws.models.CustomUsers;
         import com.brokeroffice.springbootws.models.PostId;
+        import com.brokeroffice.springbootws.models.SalesStats;
         import com.brokeroffice.springbootws.repo.*;
         import lombok.extern.slf4j.Slf4j;
 
@@ -140,7 +141,7 @@ public class ReportController implements ImplReports {
                 usersRepo.save(users);
                 return ApiResponse.builder().status("200").code(200).message("Approval Success").data(users).build();
             }else{
-                return ApiResponse.builder().status("403").code(403).message("User Already Exist").data(new Users(1L,"","","","","","",false,new UserTypes(1L,""),new Countries(1L,"")) ).build();
+                return ApiResponse.builder().status("403").code(403).message("User Already Exist").data(new Users(1L,"","","","","","",false,new UserTypes(1L,""),new Countries(1L,""),new City(1L,"",null)) ).build();
             }
 
         } else {
@@ -574,6 +575,112 @@ public class ReportController implements ImplReports {
             System.out.println(ex.getMessage());
          return   ApiResponse.builder().code(500).message("Something Happened").data(1).build();
         }
+
+    }
+
+    @Override
+    public ApiResponse users_adminapproved() throws Exception {
+        long data=0L;
+        try{
+            String sql="select count(*) as count from users where approved=0";
+
+            Statement st= Dao.connection().createStatement();
+            ResultSet rs = st.executeQuery(sql);
+            int rowCount = rs.getRow();
+            while(rs.next())
+            {
+                data = rs.getLong("count");
+            }
+        }catch (Exception ex){
+            System.out.println(ex.getMessage());
+        }
+        return ApiResponse.builder().code(200).message("User Created").data(data).build();
+    }
+
+    @Override
+    public ApiResponse users_adminnonapproved() throws Exception {
+        long data=0L;
+        try{
+            String sql="select count(*) as count from users where approved=1";
+
+            Statement st= Dao.connection().createStatement();
+            ResultSet rs = st.executeQuery(sql);
+            int rowCount = rs.getRow();
+            while(rs.next())
+            {
+                data = rs.getLong("count");
+            }
+        }catch (Exception ex){
+            System.out.println(ex.getMessage());
+        }
+        return ApiResponse.builder().code(200).message("User Created").data(data).build();
+    }
+
+    @Override
+    public List<SalesStats> getSales_stats() throws Exception {
+        List<SalesStats>salesStatsList= new ArrayList<>();
+        try{
+            String sql="select count(productName) as productCount,CONCAT(productName,'--',cityName) as productName from (SELECT \n" +
+                    "    u.name,\n" +
+                    "    s.productName,\n" +
+                    "    REPLACE(s.phone, '+263', '263') AS formatted_phone,\n" +
+                    "    s.phone AS original_phone,\n" +
+                    "    u.phone AS user_phone,\n" +
+                    "    u.city_id,\n" +
+                    "    city.name as cityName,\n" +
+                    "    u.country_id\n" +
+                    "FROM \n" +
+                    "    customer_sales s\n" +
+                    "LEFT OUTER JOIN \n" +
+                    "    users u \n" +
+                    "ON \n" +
+                    "    REPLACE(s.phone, '+263', '263') = REPLACE(u.phone, '+263', '263') left join city city on city.id=u.city_id)y group by cityName";
+
+            Statement st= Dao.connection().createStatement();
+            ResultSet rs = st.executeQuery(sql);
+            int rowCount = rs.getRow();
+            while(rs.next())
+            {
+                salesStatsList.add(new SalesStats(rs.getInt("productCount"),rs.getString("productName")));
+            }
+        }catch (Exception ex){
+            System.out.println(ex.getMessage());
+        }
+        return salesStatsList;
+
+    }
+
+    @Override
+    public List<SalesStats> getSales_stats2() throws Exception {
+        List<SalesStats>salesStatsList= new ArrayList<>();
+        try{
+            String sql="select count(productName) as productCount,productName from (SELECT \n" +
+                    "    u.name,\n" +
+                    "    s.productName,\n" +
+                    "    REPLACE(s.phone, '+263', '263') AS formatted_phone,\n" +
+                    "    s.phone AS original_phone,\n" +
+                    "    u.phone AS user_phone,\n" +
+                    "    u.city_id,\n" +
+                    "    city.name as cityName,\n" +
+                    "    u.country_id\n" +
+                    "FROM \n" +
+                    "    customer_sales s\n" +
+                    "LEFT OUTER JOIN \n" +
+                    "    users u \n" +
+                    "ON \n" +
+                    "    REPLACE(s.phone, '+263', '263') = REPLACE(u.phone, '+263', '263') left join city city on city.id=u.city_id)y group by productName";
+
+            Statement st= Dao.connection().createStatement();
+            ResultSet rs = st.executeQuery(sql);
+            int rowCount = rs.getRow();
+            while(rs.next())
+            {
+                salesStatsList.add(new SalesStats(rs.getInt("productCount"),rs.getString("productName")));
+            }
+        }catch (Exception ex){
+            System.out.println(ex.getMessage());
+        }
+        return salesStatsList;
 
     }
 

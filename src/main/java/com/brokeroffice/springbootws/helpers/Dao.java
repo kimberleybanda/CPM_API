@@ -8,8 +8,11 @@ public class Dao {
     public static Connection connection() throws Exception {
         // Correct connection URL
         String url = "jdbc:mysql://localhost:3306/cpm";
-        String username = "kim"; // Replace with your actual username
-        String password = "1234"; // Replace with your actual password
+      //  String username = "kim"; // Replace with your actual username
+       // String password = "1234"; // Replace with your actual password
+
+        String username = "root"; // Replace with your actual username
+        String password = ""; // Replace with your actual password
 
         // Establish the connection
         Connection con = DriverManager.getConnection(url, username, password);

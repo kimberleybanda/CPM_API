@@ -37,4 +37,9 @@ public class Users {
     @JoinColumn(name = "country_id")
     private Countries countries;
 
+
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "city_id")
+    private City cities;
+
 }

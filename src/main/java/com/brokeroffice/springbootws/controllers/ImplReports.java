@@ -6,6 +6,7 @@ import com.brokeroffice.springbootws.helpers.ApiResponse;
 import com.brokeroffice.springbootws.models.CustomPostId;
 import com.brokeroffice.springbootws.models.CustomUsers;
 import com.brokeroffice.springbootws.models.PostId;
+import com.brokeroffice.springbootws.models.SalesStats;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -109,6 +110,18 @@ public interface ImplReports {
 
     @PostMapping(value = "activate_user")
     ApiResponse activate_user(@RequestBody CustomPostId postId)  throws Exception;
+
+    @GetMapping(value = "users_adminapproved")
+    ApiResponse users_adminapproved()  throws Exception;
+
+    @GetMapping(value = "users_adminnonapproved")
+    ApiResponse users_adminnonapproved()  throws Exception;
+
+    @GetMapping(value = "sales_stats")
+    List<SalesStats> getSales_stats()  throws Exception;
+
+    @GetMapping(value = "sales_stats2")
+    List<SalesStats> getSales_stats2()  throws Exception;
 
 
 }

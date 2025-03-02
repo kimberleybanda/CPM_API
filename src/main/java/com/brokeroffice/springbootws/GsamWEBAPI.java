@@ -7,11 +7,19 @@ package com.brokeroffice.springbootws;
 import com.brokeroffice.springbootws.helpers.Dao;
 
 
+import com.brokeroffice.springbootws.models.SalesModel;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -24,6 +32,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2WebMvc;
 import javax.mail.*;
 import javax.mail.internet.*;
 import javax.ws.rs.core.MediaType;
+import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -32,7 +41,7 @@ import java.util.regex.Pattern;
 
 
 //@SpringBootApplication
-//@EnableScheduling
+@EnableScheduling
 @SpringBootApplication(exclude = { SecurityAutoConfiguration.class })
 @EnableSwagger2WebMvc
 @EnableCaching
@@ -141,7 +150,7 @@ System.out.println(counterDetails);
 	public static void main(String[] args) throws Exception{
 
 		SpringApplication.run(GsamWEBAPI.class, args);
-
+		int xt =0;
 
 
 		}
@@ -208,8 +217,71 @@ System.out.println(counterDetails);
 		return source;
 	}
 
+//@Scheduled(fixedRate = 1000) // Executes every 1 second
+	public void insertSales() throws UnirestException {
+	System.out.println("Fetching data from the API...");
+
+	Unirest.setTimeouts(0, 0);
+	HttpResponse<String> response = Unirest.get("https://vendorapp.generikssolutions.co.zw/api.php?id=cpm")
+			.asString();
+
+	// Check if the request was successful
+	if (response.getStatus() == 200) {
+		// Get the JSON response body
+		String jsonResponse = response.getBody();
+
+		// Parse the JSON into a list of Product objects
+		Gson gson = new Gson();
+		Type productListType = new TypeToken<List<SalesModel>>(){}.getType();
+		List<SalesModel> products = gson.fromJson(jsonResponse, productListType);
+		bulkInsertProducts(products);
+		// Print the products
+		/*for (SalesModel product : products) {
+			System.out.println(product);
+		}*/
+	} else {
+		System.err.println("Failed to fetch data. Status code: " + response.getStatus());
+	}
 
 
+	}
+
+///===========
+public static void bulkInsertProducts(List<SalesModel> products) {
+	String sql = "INSERT INTO customer_sales (uuid, shopId, productName, price, count, phone) VALUES (?, ?, ?, ?, ?, ?)";
+
+	try (Connection connection = Dao.connection();
+		 PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+		// Disable auto-commit to manage transactions manually
+		connection.setAutoCommit(false);
+
+		// Add each product to the batch
+		for (SalesModel product : products) {
+			preparedStatement.setString(1, product.getUuid());
+			preparedStatement.setString(2, product.getShopId());
+			preparedStatement.setString(3, product.getProductName());
+			preparedStatement.setString(4, product.getPrice());
+			preparedStatement.setInt(5, product.getCount());
+			preparedStatement.setString(6, product.getPhone());
+			preparedStatement.addBatch(); // Add the statement to the batch
+		}
+
+		// Execute the batch
+		int[] result = preparedStatement.executeBatch();
+
+		// Commit the transaction
+		connection.commit();
+
+		System.out.println("Bulk insert completed. Rows inserted: " + result.length);
+
+	} catch (SQLException e) {
+		System.err.println("Error during bulk insert: " + e.getMessage());
+		e.printStackTrace();
+	} catch (Exception e) {
+		throw new RuntimeException(e);
+	}
+}
 	@Override
 	public boolean equals(Object o) {
 		Double dataObj_=0.0;
