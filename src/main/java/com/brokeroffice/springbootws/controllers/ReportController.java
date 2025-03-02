@@ -5,10 +5,7 @@ package com.brokeroffice.springbootws.controllers;
         import com.brokeroffice.springbootws.helpers.AppConfigReader;
         import com.brokeroffice.springbootws.helpers.Dao;
         import com.brokeroffice.springbootws.helpers.SmsSender;
-        import com.brokeroffice.springbootws.models.CustomPostId;
-        import com.brokeroffice.springbootws.models.CustomUsers;
-        import com.brokeroffice.springbootws.models.PostId;
-        import com.brokeroffice.springbootws.models.SalesStats;
+        import com.brokeroffice.springbootws.models.*;
         import com.brokeroffice.springbootws.repo.*;
         import lombok.extern.slf4j.Slf4j;
 
@@ -35,6 +32,10 @@ package com.brokeroffice.springbootws.controllers;
         import java.util.stream.Stream;
         import okhttp3.*;
         import org.json.JSONObject;
+        import zw.co.paynow.constants.MobileMoneyMethod;
+        import zw.co.paynow.core.Payment;
+        import zw.co.paynow.core.Paynow;
+        import zw.co.paynow.responses.MobileInitResponse;
 
 @Slf4j  // to have something printed on the console
 
@@ -66,6 +67,29 @@ public class ReportController implements ImplReports {
     CityRepo citiesRepo;
 
 
+    @Override
+    public ApiResponse paynow(PaynowModel paynowModel) throws Exception {
+
+
+        Paynow paynow = new Paynow("16938","cd69ebc4-3386-4ea5-bf38-0ac17bfdefbb");
+        //Paynow paynow = new Paynow("INTEGRATION_ID", "INTEGRATION_KEY");
+        Payment payment = paynow.createPayment("Invoice 32", "user@example.com");
+        // Passing in the name of the item and the price of the item
+        payment.add("payment", paynowModel.getAmount());
+
+        MobileInitResponse response = paynow.sendMobile(payment, paynowModel.getPhone(), MobileMoneyMethod.ECOCASH);
+        if (response.success()) {
+            // Get the instructions to show to the user
+            String instructions  = response.instructions();
+
+            // Get the poll URL of the transaction
+            String pollUrl = response.pollUrl();
+        } else {
+            // Ahhhhhhhhhhhhhhh
+            // *freak out*
+        }
+        return null;
+    }
 
     @Override
     public ApiResponse login(Users users) throws Exception {
@@ -359,9 +383,31 @@ public class ReportController implements ImplReports {
 
     }
 
+
     @Override
-    public ApiResponse deals() throws Exception {
-        return  ApiResponse.builder().code(200).message("Deals fetched").data(dealsRepo.findAll()).build();
+    public ApiResponse deals(boolean check) throws Exception {
+        List<Deals>dealsList=dealsRepo.findAll();
+        List<Deals> dealsStream = new ArrayList<>();
+        if(check){
+            dealsStream = dealsList.stream().filter(deals -> deals.isStatus() == check).collect(Collectors.toList());
+        }else{
+            dealsStream = dealsList.stream().filter(deals -> deals.isStatus() == check).collect(Collectors.toList());
+        }
+
+        return  ApiResponse.builder().code(200).message("Deals fetched").data(dealsStream).build();
+    }
+
+    @Override
+    public ApiResponse deals(boolean check, int user_id) throws Exception {
+        List<Deals>dealsList=dealsRepo.findAll();
+        List<Deals> dealsStream = new ArrayList<>();
+        if(check){
+            dealsStream = dealsList.stream().filter(deals -> deals.isStatus() == check && deals.getUsers().id==user_id).collect(Collectors.toList());
+        }else{
+            dealsStream = dealsList.stream().filter(deals -> deals.isStatus() == check && deals.getUsers().id==user_id).collect(Collectors.toList());
+        }
+
+        return  ApiResponse.builder().code(200).message("Deals fetched").data(dealsStream).build();
     }
 
     @Override

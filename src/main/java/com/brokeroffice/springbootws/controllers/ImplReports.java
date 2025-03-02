@@ -3,10 +3,7 @@ package com.brokeroffice.springbootws.controllers;
 import com.brokeroffice.springbootws.entities.*;
 import com.brokeroffice.springbootws.helpers.ApiResponse;
 
-import com.brokeroffice.springbootws.models.CustomPostId;
-import com.brokeroffice.springbootws.models.CustomUsers;
-import com.brokeroffice.springbootws.models.PostId;
-import com.brokeroffice.springbootws.models.SalesStats;
+import com.brokeroffice.springbootws.models.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,6 +11,9 @@ import java.util.List;
 
 @RequestMapping("/v1/api")
 public interface ImplReports {
+
+    @PostMapping(value = "paynow")
+    ApiResponse paynow(@RequestBody PaynowModel paynowModel)  throws Exception;
 
     @PostMapping(value = "login")
     ApiResponse login(@RequestBody Users users)  throws Exception;
@@ -71,10 +71,15 @@ public interface ImplReports {
     @PostMapping(value = "deals")
     ApiResponse deals(@RequestBody Deals deals)  throws Exception;
 
+
+
     /**
      * This is the EndPoint that fetches all deals **/
     @GetMapping(value = "deals")
-    ApiResponse deals()  throws Exception;
+    ApiResponse deals(boolean check)  throws Exception;
+
+    @GetMapping(value = "user_deals")
+    ApiResponse deals(boolean check,int user_id)  throws Exception;
 
     @GetMapping(value = "deals_approved")
     ApiResponse dealsApproved(long user_id)  throws Exception;

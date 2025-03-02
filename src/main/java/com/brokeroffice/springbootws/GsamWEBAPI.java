@@ -4,6 +4,7 @@ package com.brokeroffice.springbootws;
 
 
 
+import com.brokeroffice.springbootws.helpers.AppConfigReader;
 import com.brokeroffice.springbootws.helpers.Dao;
 
 
@@ -19,18 +20,17 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfi
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import springfox.documentation.swagger2.annotations.EnableSwagger2WebMvc;
+import zw.co.paynow.constants.MobileMoneyMethod;
+import zw.co.paynow.core.Payment;
+import zw.co.paynow.core.Paynow;
+import zw.co.paynow.responses.MobileInitResponse;
 
-import javax.mail.*;
-import javax.mail.internet.*;
 import javax.ws.rs.core.MediaType;
 import java.lang.reflect.Type;
 import java.sql.*;
@@ -150,7 +150,8 @@ System.out.println(counterDetails);
 	public static void main(String[] args) throws Exception{
 
 		SpringApplication.run(GsamWEBAPI.class, args);
-		int xt =0;
+
+
 
 
 		}
