@@ -27,6 +27,8 @@ public class Users {
     public String nationalIdUrl;
     public String bankStatementUrl;
     public String proofOfResidencyUrl;
+
+    public String photoUrl;
     public boolean approved;
 
     @ManyToOne(fetch = FetchType.EAGER)

@@ -7,8 +7,12 @@ package com.brokeroffice.springbootws.controllers;
         import com.brokeroffice.springbootws.helpers.SmsSender;
         import com.brokeroffice.springbootws.models.*;
         import com.brokeroffice.springbootws.repo.*;
+        import com.mashape.unirest.http.HttpResponse;
+        import com.mashape.unirest.http.Unirest;
         import lombok.extern.slf4j.Slf4j;
 
+        import net.sf.jasperreports.engine.*;
+        import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
         import okhttp3.RequestBody;
         import org.apache.poi.xssf.usermodel.XSSFCell;
         import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -27,6 +31,8 @@ package com.brokeroffice.springbootws.controllers;
         import java.nio.file.StandardCopyOption;
         import java.sql.ResultSet;
         import java.sql.Statement;
+        import java.time.LocalDateTime;
+        import java.time.ZoneOffset;
         import java.util.*;
         import java.util.stream.Collectors;
         import java.util.stream.Stream;
@@ -65,6 +71,41 @@ public class ReportController implements ImplReports {
 
     @Autowired
     CityRepo citiesRepo;
+
+
+    @Override
+    public ApiResponse docVerification(SingleItemPost singleItemPost) throws Exception {
+        Unirest.setTimeouts(0, 0);
+
+        // Create the JSON request body properly
+        String requestBody = String.format("{\n" +
+                "     \"profile\": \"60c1627340a09ce39d8bf48f\",\n" +
+                "     \"document\": \"%s\"\n" +
+                "}", singleItemPost.getDocument());
+
+        HttpResponse<String> response = Unirest.post("https://api2.idanalyzer.com/scan")
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .header("x-api-key", "vXcQoQH6Y195YRE8gL7BAK7eyqCJWeZy")
+                .header("Cookie", "__cflb=02DiuHwYc6VyiTumT63hpaYuwbjDj7K6N3PoBApuhiKba")
+                .body(requestBody)
+                .asString();
+
+        // You should process the response and return an ApiResponse
+        // Example:
+        if (response.getStatus() == 200) {
+         //   System.out.println("Response: " + response.getBody());
+            return  ApiResponse.builder()
+                    .code(200)
+                    .message("Success")
+                    .data(response.getBody())
+                    .build();
+        } else {
+            return ApiResponse.builder().code(500).message("Error").data(0).build();
+        }
+    }
+
+
 
 
     @Override
@@ -129,13 +170,16 @@ public class ReportController implements ImplReports {
             MultipartFile nationalIdFile,
             MultipartFile bankStatementFile,
              MultipartFile proofOfResidencyFile,
+            MultipartFile photoFile,
             Users users) throws Exception {
 
         String nationalIdFileName = StringUtils.cleanPath(nationalIdFile.getOriginalFilename());
         String bankStatementFileName = StringUtils.cleanPath(bankStatementFile.getOriginalFilename());
         String proofOfResidencyFileName = StringUtils.cleanPath(proofOfResidencyFile.getOriginalFilename());
 
-        if (!nationalIdFileName.endsWith(".png") ||!bankStatementFileName.endsWith(".png")  ||!proofOfResidencyFileName.endsWith(".png") ) {
+        String photoFileName = StringUtils.cleanPath(photoFile.getOriginalFilename());
+
+        if (!(nationalIdFileName.endsWith(".png") ||nationalIdFileName.endsWith(".jpg"))  ||!(bankStatementFileName.endsWith(".png") ||bankStatementFileName.endsWith(".jpg"))  ||!(proofOfResidencyFileName.endsWith(".png")||proofOfResidencyFileName.endsWith(".jpg")) ) {
             return ApiResponse.builder().code(500).message("File Type Wrong").data(0).build();
         }
 
@@ -148,13 +192,16 @@ public class ReportController implements ImplReports {
 
         }
         Path path = Paths.get("C:\\inetpub\\wwwroot\\cpm\\RegistrationsUploads\\"+users.getPhone()+"\\" + nationalIdFileName);
-        Files.copy(nationalIdFile.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(nationalIdFile.getInputStream(), path);
 
         Path path2 = Paths.get("C:\\inetpub\\wwwroot\\cpm\\RegistrationsUploads\\"+users.getPhone()+"\\" + bankStatementFileName);
-        Files.copy(bankStatementFile.getInputStream(), path2, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(bankStatementFile.getInputStream(), path2);
 
         Path path3 = Paths.get("C:\\inetpub\\wwwroot\\cpm\\RegistrationsUploads\\"+users.getPhone()+"\\" + proofOfResidencyFileName);
-        Files.copy(proofOfResidencyFile.getInputStream(), path3, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(proofOfResidencyFile.getInputStream(), path3);
+
+        Path path4 = Paths.get("C:\\inetpub\\wwwroot\\cpm\\RegistrationsUploads\\"+users.getPhone()+"\\" + photoFileName);
+        Files.copy(photoFile.getInputStream(), path4);
 
 
         Optional<Users> usersOptional = Optional.ofNullable(usersRepo.findByPhone(users.getPhone()));
@@ -163,16 +210,20 @@ public class ReportController implements ImplReports {
             if(users.isApproved()){
                 users.setApproved(true);
                 usersRepo.save(users);
+                System.out.println("User Found");
                 return ApiResponse.builder().status("200").code(200).message("Approval Success").data(users).build();
             }else{
-                return ApiResponse.builder().status("403").code(403).message("User Already Exist").data(new Users(1L,"","","","","","",false,new UserTypes(1L,""),new Countries(1L,""),new City(1L,"",null)) ).build();
+                System.out.println("User Found");
+                return ApiResponse.builder().status("403").code(403).message("User Already Exist").data(new Users(1L,"","","","","","","",false,new UserTypes(1L,""),new Countries(1L,""),new City(1L,"",null)) ).build();
             }
 
         } else {
             users.setNationalIdUrl("cpm/RegistrationsUploads/"+nationalIdFileName);
             users.setBankStatementUrl("cpm/RegistrationsUploads/"+bankStatementFileName);
             users.setProofOfResidencyUrl("cpm/RegistrationsUploads/"+proofOfResidencyFileName);
+            users.setPhotoUrl("cpm/RegistrationsUploads/"+photoFileName);
             usersRepo.save(users);
+            System.out.println("User Created");
             return ApiResponse.builder().status("200").code(200).message("User Created").data(users).build();
         }
     }
@@ -728,6 +779,65 @@ public class ReportController implements ImplReports {
         }
         return salesStatsList;
 
+    }
+    public static int generateFourDigitNumber() {
+        Random random = new Random();
+        return 1000 + random.nextInt(9000);
+    }
+
+    public byte[] getInvoice(SingleItemPost singleItemPost) throws Exception {
+        byte[] pdfBytes = null;
+        LocalDateTime now = LocalDateTime.now();
+        Long timestamp = now.toEpochSecond(ZoneOffset.UTC);
+        String longRepresentation = timestamp.toString();
+        String fileName = longRepresentation + ".pdf";
+        try {
+            System.setProperty("java.awt.headless", "false");
+            // Set the report file path
+            String reportFilePath = "C:\\backups\\cpm\\Invoice.jrxml";
+
+            // Create a list of data to be used as the data source
+            List<String> names = new ArrayList<>();
+            names.add("Alice");
+            names.add("Bob");
+            names.add("Charlie");
+            names.add("David");
+            names.add("Emily");
+            class Params{
+
+            }
+
+            List<Invoice> x = new ArrayList<>();
+            Map<String,Object>param = new HashMap<>();
+
+            Deals deals=  dealsRepo.findById(65);
+
+            Invoice invoice = new Invoice();
+
+            invoice.setName(deals.getUsers().getName());
+            invoice.setProductName(deals.getProducts().getProduct().getName());
+            invoice.setAmount(Double.parseDouble(deals.getProducts().getPrice()));
+            invoice.setQuantity(deals.getQty());
+            invoice.setTotal(deals.getAmount());
+            invoice.setInvoiceNumber(String.valueOf(generateFourDigitNumber()));
+
+            x.add(invoice);
+            System.out.println(deals);
+
+            JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(x);
+
+            JasperReport jasperReport = JasperCompileManager.compileReport(reportFilePath);
+
+            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, param, dataSource);
+
+            JasperExportManager.exportReportToPdfFile(jasperPrint, "C:\\backups\\cpm\\"+fileName);
+            pdfBytes = JasperExportManager.exportReportToPdf(jasperPrint);
+
+        } catch (Exception ex) {
+            System.out.println(ex);
+            ex.printStackTrace();
+        }
+        return pdfBytes;
     }
 
 

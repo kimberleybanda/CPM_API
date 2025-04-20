@@ -12,6 +12,8 @@ import java.util.List;
 @RequestMapping("/v1/api")
 public interface ImplReports {
 
+    @PostMapping(value = "doc_verification")
+    ApiResponse docVerification(@RequestBody SingleItemPost singleItemPost) throws Exception;
     @PostMapping(value = "paynow")
     ApiResponse paynow(@RequestBody PaynowModel paynowModel)  throws Exception;
 
@@ -21,7 +23,10 @@ public interface ImplReports {
     @PostMapping(value = "register")
     ApiResponse register(@RequestPart MultipartFile nationalIdFile,
                          @RequestPart MultipartFile bankStatementFile,
-                         @RequestPart MultipartFile proofOfResidencyFile,@RequestPart Users users)  throws Exception;
+                         @RequestPart MultipartFile proofOfResidencyFile,
+                          @RequestPart   MultipartFile photoFile
+
+            ,@RequestPart Users users)  throws Exception;
 
     @GetMapping(value = "usertypes")
     ApiResponse usertypes()  throws Exception;
@@ -128,5 +133,7 @@ public interface ImplReports {
     @GetMapping(value = "sales_stats2")
     List<SalesStats> getSales_stats2()  throws Exception;
 
+    @PostMapping(value = "print_invoice")
+     byte[] getInvoice(@RequestBody  SingleItemPost singleItemPost) throws Exception;
 
 }
