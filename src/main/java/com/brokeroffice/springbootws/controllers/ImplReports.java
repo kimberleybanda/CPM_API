@@ -136,4 +136,8 @@ public interface ImplReports {
     @PostMapping(value = "print_invoice")
      byte[] getInvoice(@RequestBody  SingleItemPost singleItemPost) throws Exception;
 
+
+    @PostMapping(value = "school_report")
+    byte[] school_report(@RequestBody  SingleItemPost singleItemPost) throws Exception;
+
 }

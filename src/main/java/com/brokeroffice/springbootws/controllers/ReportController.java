@@ -222,6 +222,7 @@ public class ReportController implements ImplReports {
             users.setBankStatementUrl("cpm/RegistrationsUploads/"+bankStatementFileName);
             users.setProofOfResidencyUrl("cpm/RegistrationsUploads/"+proofOfResidencyFileName);
             users.setPhotoUrl("cpm/RegistrationsUploads/"+photoFileName);
+            users.approved=true;
             usersRepo.save(users);
             System.out.println("User Created");
             return ApiResponse.builder().status("200").code(200).message("User Created").data(users).build();
@@ -651,7 +652,7 @@ public class ReportController implements ImplReports {
 
         try {
 
-            String sql = "UPDATE users SET approved = 1 WHERE id = " + postId.getId();
+            String sql = "UPDATE users SET approved = 0 WHERE id = " + postId.getId();
             System.out.println(sql);
             Statement st = Dao.connection().createStatement();
 
@@ -840,5 +841,51 @@ public class ReportController implements ImplReports {
         return pdfBytes;
     }
 
+    public byte[] school_report(SingleItemPost singleItemPost) throws Exception {
+        System.out.println("school report");
+        byte[] pdfBytes = null;
+        LocalDateTime now = LocalDateTime.now();
+        Long timestamp = now.toEpochSecond(ZoneOffset.UTC);
+        String longRepresentation = timestamp.toString();
+        String fileName = longRepresentation + ".pdf";
+        try {
+            System.setProperty("java.awt.headless", "false");
+            // Set the report file path
+            String reportFilePath = "C:\\backups\\cpm\\schoolreport.jrxml";
 
+            // Create a list of data to be used as the data source
+            List<Results> resultList = new ArrayList<>();
+            resultList.add(new Results("Mathematics", "A","Chiyangwa","Well Done"));
+            resultList.add(new Results("Physics", "C","Chunga","You can do better"));
+            resultList.add(new Results("Chemistry", "B","Wagoneka","You can move to A grade"));
+            resultList.add(new Results("Biology", "E","Karongo","You are Playing Too Much"));
+
+            class Params{
+
+            }
+
+
+            Map<String,Object>param = new HashMap<>();
+            param.put("studentName","Leroy TChiyangwa");
+            param.put("Grade","A Level");
+            param.put("semester","1");
+            param.put("year","2025");
+
+
+
+            JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(resultList);
+
+            JasperReport jasperReport = JasperCompileManager.compileReport(reportFilePath);
+
+            JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, param, dataSource);
+
+            JasperExportManager.exportReportToPdfFile(jasperPrint, "C:\\backups\\cpm\\"+fileName);
+            pdfBytes = JasperExportManager.exportReportToPdf(jasperPrint);
+
+        } catch (Exception ex) {
+            System.out.println(ex);
+            ex.printStackTrace();
+        }
+        return pdfBytes;
+    }
 }
